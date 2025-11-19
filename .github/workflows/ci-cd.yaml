@@ -24,8 +24,8 @@ jobs:
           context: . # everything in the current directory
           push: true
           tags: |
-            ghcr.io/${{ github.repository }}:latest
-            ghcr.io/${{ github.repository }}:${{ github.sha }}
+            ghcr.io/nnafis-007:latest
+            ghcr.io/nnafis-007:${{ github.sha }}
       - name: Update GitOps repository # update to trigger CD
         shell: bash
         env:
@@ -44,9 +44,9 @@ jobs:
           
           # --- UPDATES THE IMAGE NAME in deployment.yaml (of gitops repo) -> TRIGGERS CD
           if [[ "$OSTYPE" == "darwin"* ]]; then 
-            sed -i '' "s|image: ghcr.io/${{ github.repository }}:.*|image: ghcr.io/${{ github.repository }}:${{ github.sha }}|g" deployment.yaml
+            sed -i '' "s|image: ghcr.io/nnafis-007:.*|image: ghcr.io/nnafis-007:${{ github.sha }}|g" deployment.yaml
           else
-            sed -i "s|image: ghcr.io/${{ github.repository }}:.*|image: ghcr.io/${{ github.repository }}:${{ github.sha }}|g" deployment.yaml
+            sed -i "s|image: ghcr.io/nnafis-007:.*|image: ghcr.io/nnafis-007:${{ github.sha }}|g" deployment.yaml
           fi
           
           # Commit changes -> will trigger CD
