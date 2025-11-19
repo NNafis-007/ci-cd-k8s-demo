@@ -27,33 +27,34 @@ jobs:
             docker.io/nnafis007/kubernetes-cicd-tutorial:latest
             docker.io/nnafis007/kubernetes-cicd-tutorial:${{ github.sha }}
       - name: Update GitOps repository # update to trigger CD
-        shell: bash
+        shell: powershell
         env:
           GIT_TOKEN: ${{ secrets.GITOPS_PAT }} # manipulate the GitOps repo
         run: |
           # Configure git credential store
           git config --global credential.helper store
-          echo "https://${GIT_TOKEN}:x-oauth-basic@github.com" > ~/.git-credentials
-          
+
+          # Write credential file for Git on Windows
+          $cred = "https://$($env:GIT_TOKEN):x-oauth-basic@github.com"
+          $cred | Out-File -FilePath "$env:USERPROFILE\.git-credentials" -Encoding ASCII
+
           # Remove any existing gitops directory
-          rm -rf gitops
-          
-          # --- Clone repository using HTTPS URL without token
+          if (Test-Path gitops) { Remove-Item -Recurse -Force gitops }
+
+          # Clone repository
           git clone https://github.com/NNafis-007/gitops-demo.git gitops
-          cd gitops
-          
-          # --- Replace any ghcr.io references with Docker Hub (docker.io)
-          if [[ "$OSTYPE" == "darwin"* ]]; then 
-            sed -i '' "s|ghcr.io/nnafis007|docker.io/nnafis007|g" deployment.yaml
-          else
-            sed -i "s|ghcr.io/nnafis007|docker.io/nnafis007|g" deployment.yaml
-          fi
-          
+          Set-Location gitops
+
+          # Replace any ghcr.io references with Docker Hub (docker.io)
+          (Get-Content deployment.yaml) -replace 'ghcr.io/nnafis007','docker.io/nnafis007' | Set-Content deployment.yaml
+
           # Commit changes -> will trigger CD
-          git config --global user.name "GitHub Actions"
-          git config --global user.email "actions@github.com"
+          git config --global user.name 'GitHub Actions'
+          git config --global user.email 'actions@github.com'
           git add deployment.yaml
-          git commit -m "Update image to ${{ github.sha }}"
-          
-          # Push
-          git push -f https://${GIT_TOKEN}@github.com/NNafis-007/gitops-demo.git main
+          git commit -m 'Update image to ${{ github.sha }}'
+          if ($LASTEXITCODE -ne 0) { Write-Host 'No changes to commit or commit failed' }
+
+          # Push using token in URL
+          $remote = "https://$($env:GIT_TOKEN)@github.com/NNafis-007/gitops-demo.git"
+          git push -f $remote main
